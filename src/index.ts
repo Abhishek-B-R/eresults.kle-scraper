@@ -1,5 +1,18 @@
 import puppeteer from "puppeteer";
 import ExcelJS from "exceljs";
+import path from "path";
+import fs from "fs"
+
+interface dataProps{
+    yearOfJoining:number,
+    branchInTwoChars:string,
+    startUSN:number,
+    endUSN:number
+}
+
+const dirname=__dirname.split("/").filter((e)=>e!=="dist").join("/")
+const filePath = path.join(dirname, 'data.json');
+const data:dataProps = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
 function delay(time:number) {
     return new Promise(resolve => setTimeout(resolve, time));
@@ -34,9 +47,9 @@ worksheet.columns = [
 
     await page.goto("https://eresults.kletech.ac.in/", { waitUntil: 'networkidle2' });
 
-    const noOfUSN=120;
+    const noOfUSN=data.endUSN;
 
-    for(let i =1;i<=noOfUSN;i++){
+    for(let i =data.startUSN;i<=noOfUSN;i++){
         try{
             await page.evaluate(() => {
                 const input = document.querySelector('#usn');
@@ -48,14 +61,16 @@ worksheet.columns = [
             await page.keyboard.press('A');
             await page.keyboard.up('Control');
             await page.keyboard.press('Backspace'); 
+
+            const usnPrototype=`01FE${data.yearOfJoining}B${data.branchInTwoChars}`
     
-            if(i<10)        await page.type('#usn', "01FE23BCI00"+i);
-            else if(i<100)  await page.type('#usn', "01FE23BCI0"+i);
-            else            await page.type('#usn', "01FE23BCI"+i);
+            if(i<10)        await page.type('#usn', `${usnPrototype}00`+i);
+            else if(i<100)  await page.type('#usn', `${usnPrototype}0`+i);
+            else            await page.type('#usn', `${usnPrototype}`+i);
     
-            if(i<=1)    await delay(10000)
+            if(i<=data.startUSN)    await delay(10000)
             page.click('button[type="submit"][class="myButton"][formaction*="index.php?option=com_examresult&task=getResult"]')
-            await delay(2000)
+            await delay(3000)
             
             const name = await page.evaluate(() => {
                 const element = document.querySelector('.uk-card.stu-data.stu-data1');
